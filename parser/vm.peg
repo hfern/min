@@ -1,0 +1,87 @@
+package parser
+
+type VMTree Peg {
+	//Expression
+}
+
+
+program <- optspace (routine optspace)+ optspace
+routine <- kwroutine minspace variable optspace paramaterdecl codeblock
+
+operation <- opaction optspace endl
+opaction <- (reservation / returning / assignment / labeling / jumping)
+
+reservation <- kwreserve minspace variable (comma variable)*
+returning <- kwreturn minspace expr
+assignment <- variable optspace '=' optspace expr optspace
+labeling <- kwlabel minspace variable optspace
+jumping <- kwjump minspace variable optspace
+
+
+value <- funccall / number / variable
+expr <- value / math
+funccall <- variable "(" optspace callparams? ")"
+
+codestatement <- logicblock / operation
+
+codeblock <- optspace '{' (optspace codestatement)* optspace '}' optspace
+
+logicblock <- ifblock (optspace elseblock)?
+
+ifblock <- kwif minspace comparison_paren codeblock
+
+elseblock <- kwelse optspace codeblock
+
+variable <- [a-zA-Z]+ [a-zA-Z0-9]*
+
+paramaterdecl <- '<' optspace parameters? '>'
+callparams <- value (comma value)* optspace
+parameters <- variable (comma variable)* optspace
+
+comma <- optspace ',' optspace
+
+kwreserve <- 'res'
+kwreturn <- 'return'
+kwroutine <- 'routine'
+kwjump <- 'jump'
+kwlabel <- 'label'
+kwif <- 'if'
+kwelse <- 'else'
+
+tokadd <- '+' optspace
+toksub <- '-' optspace
+tokmul <- '*' space
+tokdiv <- '/' optspace
+
+endl <- optspace ';'
+
+rawmath <- value optspace (tokadd / toksub / tokmul / tokdiv) optspace value
+math <- optspace (rawmath / (popen rawmath pclose) ) optspace
+
+popen <- '(' optspace
+pclose <- ')' optspace
+
+
+toklt <- '<'
+tokgt <- '>'
+tokeq <- '=='
+tokle <- '<='
+tokge <- '>='
+tokne <- '!='
+comparisontoken <- (toklt / tokgt / tokeq / tokle / tokge / tokne)
+comparison <- value minspace comparisontoken minspace value
+comparison_paren <- popen optspace (comparison/value) optspace pclose
+
+positivenum <- [1-9] digit*
+negativenum <- '-' positivenum
+number <- positivenum / negativenum
+
+digit <- [0-9]
+
+commentblock <- "/*" (!"*/" .)* "*/"
+commentdoubleslash <- "//" [^\n\r]* space
+comment <- commentblock / commentdoubleslash
+literalspace <- ' ' / '\t' / '\n' / '\r'
+space <- ( comment / literalspace)
+minspace <- space+
+optspace <- space*
