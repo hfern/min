@@ -9,10 +9,10 @@ import (
 
 var pause_time time.Duration
 
-var flag_vvv *bool = flag.Bool("cmp-vvv", false, "Very, Very Verbose parser logging.")
-var flag_hits *bool = flag.Bool("cmp-hits", false, "Log parser branches.")
-var flag_logrecursion *bool = flag.Bool("cmp-rec", false, "Log parser recursion.")
-var flag_tokenmap *bool = flag.Bool("cmp-tkmp", false, "Whitespace token map.")
+var flag_vvv *bool = flag.Bool("prs-vvv", false, "Very, Very Verbose parser logging.")
+var flag_hits *bool = flag.Bool("prs-hits", false, "Log parser branches.")
+var flag_logrecursion *bool = flag.Bool("prs-rec", false, "Log parser recursion.")
+var flag_tokenmap *bool = flag.Bool("prs-tkmp", false, "Whitespace token map.")
 
 func logPoolAccess(pool *tokenpool, n int, ok bool) {
 	if *flag_vvv {

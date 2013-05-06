@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-var flag_pause *uint = flag.Uint("cmp-pause", 0, "Duration in milliseconds to pause in order to avoid unpaused recursion. Useful for debugging. 0 = no pause.")
+var flag_pause *uint = flag.Uint("prs-pause", 0, "Milliseconds for parser pausing.")
 
 func init() {
 	flag.Parse()
