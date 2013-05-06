@@ -2,6 +2,7 @@ package parser
 
 type VMTree Peg {
 	//Expression
+	ASTTree Node
 }
 
 

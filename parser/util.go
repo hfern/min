@@ -4,34 +4,33 @@ func newNode() Node {
 	return Node{Children: make([]*Node, 0, 1)}
 }
 
-func newNodeT(t token32) Node {
+func newNodeT(t State16) Node {
 	n := newNode()
 	n.Tok = t
 	return n
 }
 
-func newNodeTP(t token32, p *Node) Node {
-	n := newNodeT(t)
-	n.parent = p
-	return n
+func newNodeTP(state State16, root *Node) Node {
+	child := newNodeT(state)
+	root.addChild(&child)
+	return child
 }
 
-func whitespacefilter(in <-chan token32, out chan<- token32) {
-	defer close(out)
-	var t token32
-	var ok bool
-	for {
-		if t, ok = <-in; !ok {
-			return
+func whitespacefilter(in <-chan State16) <-chan State16 {
+	out := make(chan State16, 0)
+	go func() {
+		for state := range in {
+			if !is_whitespace(state.Rule) {
+				out <- state
+			}
 		}
-		if !is_whitespace(t) {
-			out <- t
-		}
-	}
+
+		close(out)
+	}()
+	return out
 }
 
-func is_whitespace(tok token32) bool {
-	r := tok.Rule
+func is_whitespace(r Rule) bool {
 	return r == Rulespace ||
 		r == Ruleoptspace ||
 		r == Ruleminspace ||
@@ -39,4 +38,15 @@ func is_whitespace(tok token32) bool {
 		r == Rulecommentdoubleslash ||
 		r == Rulecomment ||
 		r == Rulecommentblock
+}
+
+func get_n_spaces(n int) string {
+	if n == 1 {
+		return " "
+	}
+	b := make([]byte, n, n)
+	for i := 0; i < n; i++ {
+		b[i] = 32 // ASCII dec 32 == space
+	}
+	return string(b)
 }

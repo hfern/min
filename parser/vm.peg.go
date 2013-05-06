@@ -641,6 +641,7 @@ func (t *tokens32) Expand(index int) TokenTree {
 type VMTree struct {
 
 	//Expression
+	ASTTree Node
 
 	Buffer string
 	rules  [59]func() bool

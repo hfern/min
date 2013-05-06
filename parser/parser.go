@@ -1,42 +1,42 @@
 package parser
 
-import (
-	"fmt"
-)
+import ()
 
-func (p *VMTree) ParseTree() {
-	ch := p.TokenTree.Tokens()
-	program := newNode()
-	program.Tok.next = 0 // root node
+func (p *VMTree) ParseTree() *Node {
+	tree := p.TokenTree.(*tokens16)
 
-	ok, leftover := p._recursiveBranch(&program, ch)
-	fmt.Println(ok)
-	fmt.Println(*leftover)
+	// unpack from channel to sliding frame
+	tchan, _ := tree.PreOrder()
+	pool := tokenpool{}
+	pool.Enumerate(tchan, true) // skip spaces
+
+	root := newNode()
+	root.Tok.next = -1 // base tokens start at 0
+	_recursiveBranch(&root, &pool, &p.Buffer, 0)
+
+	p.ASTTree = root
+	return &p.ASTTree
 }
 
-func (p *VMTree) _recursiveBranch(root *Node, ch <-chan token32) (bool, *token32) {
-	for {
-		t, ok := <-ch
-		if !ok {
-			break
-		}
-	AfterTokenSelect:
-		if root.Tok.isParentOf(t) {
-			child := newNodeTP(t, root)
+func _recursiveBranch(root *Node, pool *tokenpool, sourcecode *string, level int) {
+	level++
+	logRecursionHead(level)
+	for tok := pool.Next(); tok != nil; tok = pool.Next() {
+		logParseRecursion(tok)
+		doRecursionPause()
+
+		if tok.next > root.Tok.next {
+			logHitChild(pool, root.Tok.next, tok.next)
+			child := newNodeT(*tok)
+			child.bindSource(sourcecode)
 			root.addChild(&child)
-			descentok, leftover := p._recursiveBranch(&child, ch)
-			if !descentok {
-				return descentok, leftover
-			}
-			if leftover != nil {
-				// we have a sibling to child
-				t = *leftover
-				goto AfterTokenSelect
-			}
+			_recursiveBranch(&child, pool, sourcecode, level)
 		} else {
-			// sibling of parent of root
-			return true, &t
+			//logHitElse(pool)
+			// Oops. A token that we shouldn't have
+			// consumed
+			pool.Back()
+			return
 		}
 	}
-	return true, nil
 }
