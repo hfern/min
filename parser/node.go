@@ -88,3 +88,33 @@ func (root *Node) Source() string {
 func (root *Node) bindSource(s *string) {
 	root.source = (*s)[root.Tok.begin:root.Tok.end]
 }
+
+func (me *Node) ChildIndex() int {
+	// -1 is not found code
+	myindex := -1
+	if me.parent == nil {
+		return myindex
+	}
+	for i, child := range me.parent.Children {
+		if child == me {
+			myindex = i
+			break
+		}
+	}
+	return myindex
+}
+
+func (me *Node) Next() *Node {
+	myindex := me.ChildIndex()
+	if myindex == -1 {
+		// Can't find this node in parent's children.
+		// Do I even exist? 
+		return nil
+	}
+
+	if myindex >= len(me.parent.Children) {
+		// This node has no younger sibling
+		return nil
+	}
+	return me.parent.Children[myindex+1]
+}

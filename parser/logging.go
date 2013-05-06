@@ -47,8 +47,8 @@ func doRecursionPause() {
 	}
 }
 
-func logRecursionHead(n int) {
+func logRecursionHead(n int, d *Node) {
 	if *flag_tokenmap {
-		fmt.Printf("%s%d\n", get_n_spaces(n), n)
+		fmt.Printf("%s%d %s\n", get_n_spaces(n), n, Rul3s[d.Tok.Rule])
 	}
 }

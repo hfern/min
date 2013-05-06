@@ -20,7 +20,7 @@ func (p *VMTree) ParseTree() *Node {
 
 func _recursiveBranch(root *Node, pool *tokenpool, sourcecode *string, level int) {
 	level++
-	logRecursionHead(level)
+	logRecursionHead(level, root)
 	for tok := pool.Next(); tok != nil; tok = pool.Next() {
 		logParseRecursion(tok)
 		doRecursionPause()
