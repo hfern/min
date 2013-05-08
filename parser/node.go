@@ -6,6 +6,7 @@ import (
 
 type SearchCode int
 type SearchFunction func(*Node) SearchCode
+type NodeArrayFilter func(*Node) bool
 
 const (
 	_                          = iota
@@ -56,6 +57,10 @@ func (root *Node) EachNode(fn SearchFunction) {
 	return
 }
 
+func (nd *Node) Parent() *Node {
+	return nd.parent
+}
+
 // Runs the user function on each node. To end the search, 
 // return SEARCH_END
 func (root *Node) _executeEach(fn SearchFunction) SearchCode {
@@ -79,8 +84,8 @@ func (root *Node) _executeEach(fn SearchFunction) SearchCode {
 // TODO make this use channels for appending to 
 // the results array. Removes block that would allow
 // _executeEach to run on multiple goroutines
-func (root *Node) _performTreeSearch(r Rule, onlyone bool) []*Node {
-	results := make([]*Node, 0, 5)
+func (root *Node) _performTreeSearch(r Rule, onlyone bool) NodeArray {
+	results := make(NodeArray, 0, 5)
 
 	results_channel := make(chan *Node)
 	done_channel := make(chan bool)
@@ -117,7 +122,7 @@ func (root *Node) _performTreeSearch(r Rule, onlyone bool) []*Node {
 	return results
 }
 
-func (root *Node) GetNodesByRule(r Rule) []*Node {
+func (root *Node) GetNodesByRule(r Rule) NodeArray {
 	return root._performTreeSearch(r, false)
 }
 
@@ -202,6 +207,14 @@ func (me *Node) ToNodeArray() NodeArray {
 	return NodeArray{me}
 }
 
+func NewNodeArray_Cap(capacity int) NodeArray {
+	return make(NodeArray, 0, capacity)
+}
+
+func NewNodeArray() NodeArray {
+	return NewNodeArray_Cap(3)
+}
+
 // CastPrimitive is a convenience function that
 // returns the NodeArray in the base
 // []*Node format.
@@ -209,6 +222,32 @@ func (arr *NodeArray) CastPrimitive() []*Node {
 	return (*arr).CastPrimitiveLit()
 }
 
+// CastPrimitiveLit is the literal variant of CastPrimitive.
+// While not being especially useful, it helps cast 
+// single liners in the primitive base type of NodeArray.
+// 
+// Example: 
+//   NodeArray{}.CastPrimitiveLit()
 func (arr NodeArray) CastPrimitiveLit() []*Node {
 	return ([]*Node)(arr)
+}
+
+// Filter takes a function and applies it to all elements
+// of the array. If the function returns true, the node
+// is kept in the array. If the filter function returns 
+// false, the node is removed from the array.
+// 
+// Returns number of nodes deleted from the array
+func (arr *NodeArray) Filter(filterfunc NodeArrayFilter) int {
+	newarr := NewNodeArray_Cap(len(*arr))
+	disposed_nodes := 0
+	for _, node := range *arr {
+		if filterfunc(node) {
+			newarr = append(newarr, node)
+		} else {
+			disposed_nodes++
+		}
+	}
+	*arr = newarr
+	return disposed_nodes
 }
