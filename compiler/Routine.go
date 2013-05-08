@@ -2,7 +2,6 @@ package compiler
 
 import (
 	"github.com/hfern/min/parser"
-	"log"
 )
 
 type Routine struct {
@@ -21,6 +20,35 @@ type Routine struct {
 func (r *Routine) lex() {
 	r.__name = r.lex_name()
 	r.register_arguments(r.lex_arguments())
+	r.register_variable_positions(r.lex_variables())
+
+}
+
+// Determines variable positions
+func (r *Routine) lex_variables() parser.NodeArray {
+	codeblock := r.__node.Child(parser.Rulecodeblock)
+	variables := codeblock.GetNodesByRule(parser.Rulevariable)
+	// Variables that are in a parser.Rulefuncidentifier
+	// are not variables but actually function call
+	// function identifiers
+	number_pruned := variables.Filter(func(node *parser.Node) bool {
+		if parent := node.Parent(); parent != nil {
+			if parent.Tok.Rule == parser.Rulefuncidentifier {
+				log_function_call_saved(r.__name, node)
+				return false
+			}
+		}
+		log_variable_trace(r.__name, node)
+		return true
+	})
+	log_number_funccalls_saved(r.__name, number_pruned)
+	return variables
+}
+
+func (r *Routine) register_variable_positions(nodes parser.NodeArray) {
+	for _, node := range nodes {
+		r.vmap.AddInstance(node)
+	}
 }
 
 /**
