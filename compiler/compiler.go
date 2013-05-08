@@ -1,22 +1,22 @@
 package compiler
 
 import (
-	"fmt"
+	//"fmt"
 	"github.com/hfern/min/parser"
+	//"log"
 )
 
 type Compiler struct {
-	routines map[string]Routine
-	tree     *parser.VMTree
-	program  Program
+	tree    *parser.VMTree
+	program *Program
 }
 
-func NewCompiler() Compiler {
+func NewCompiler() *Compiler {
 	cmp := Compiler{}
-	cmp.routines = make(map[string]Routine)
-	cmp.program = NewProgram()
+	program := NewProgram()
+	cmp.program = &program
 	cmp.program.__compiler = &cmp
-	return cmp
+	return &cmp
 }
 
 func (c *Compiler) SetTree(t *parser.VMTree) {
@@ -24,9 +24,9 @@ func (c *Compiler) SetTree(t *parser.VMTree) {
 }
 
 func (c *Compiler) Compile() {
-	routineNodes := c.tree.ASTTree.GetNodesByRule(parser.Ruleroutine, false)
+	routineNodes := c.tree.ASTTree.GetNodesByRule(parser.Ruleroutine)
 	for _, node := range routineNodes {
-
-		fmt.Println(node.ChildIndex())
+		r := NewRoutineNP(node, c.program)
+		r.lex()
 	}
 }

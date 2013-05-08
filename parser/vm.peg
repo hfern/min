@@ -7,7 +7,7 @@ type VMTree Peg {
 
 
 program <- optspace (routine optspace)+ optspace
-routine <- kwroutine minspace variable optspace paramaterdecl codeblock
+routine <- kwroutine minspace funcIdDecl optspace paramaterdecl codeblock
 
 operation <- opaction optspace endl
 opaction <- (reservation / returning / assignment / labeling / jumping)
@@ -21,7 +21,7 @@ jumping <- kwjump minspace variable optspace
 
 value <- funccall / number / variable
 expr <- value / math
-funccall <- variable "(" optspace callparams? ")"
+funccall <- funcidentifier "(" optspace callparams? ")"
 
 codestatement <- logicblock / operation
 
@@ -34,6 +34,9 @@ ifblock <- kwif minspace comparison_paren codeblock
 elseblock <- kwelse optspace codeblock
 
 variable <- [a-zA-Z]+ [a-zA-Z0-9]*
+
+funcIdDecl <- variable
+funcidentifier <- variable 
 
 paramaterdecl <- '<' optspace parameters? '>'
 callparams <- value (comma value)* optspace

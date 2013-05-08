@@ -1,11 +1,18 @@
 package parser
 
 import (
-	"errors"
 	"fmt"
 )
 
-var SEARCH_END error = errors.New("End of Search.")
+type SearchCode int
+type SearchFunction func(*Node) SearchCode
+
+const (
+	_                          = iota
+	SEARCH_CONTINUE SearchCode = 1 << iota
+	SEARCH_END
+	SEARCH_ADD
+)
 
 type Node struct {
 	Tok      State16
@@ -13,6 +20,8 @@ type Node struct {
 	parent   *Node
 	source   string
 }
+
+type NodeArray []*Node
 
 func (root *Node) addChild(n *Node) {
 	root.Children = append(root.Children, n)
@@ -41,48 +50,102 @@ func (root *Node) PrintTree() {
 	fmt.Println(len(root.Children[1].Children))
 }
 
-func (root *Node) EachNode(list *[]*Node, fn func(*[]*Node, *Node) bool) {
-	defer func() {
-		if r := recover(); r != nil {
-			// Only recover from SEARCH_END
-			// Do not catch other panics
-			if r != SEARCH_END {
-				panic(r)
-			}
-		}
-	}()
-	root._executeEach(list, fn)
+func (root *Node) EachNode(fn SearchFunction) {
+	//results := make([]*Node, 0, 0)
+	root._executeEach(fn)
 	return
 }
 
 // Runs the user function on each node. To end the search, 
-// call panic(parser.SEARCH_END)
-func (root *Node) _executeEach(list *[]*Node, fn func(*[]*Node, *Node) bool) {
-	for _, child := range root.Children {
-		returncode := fn(list, child)
-		if returncode {
-			return
+// return SEARCH_END
+func (root *Node) _executeEach(fn SearchFunction) SearchCode {
+	var child *Node
+	// If a "invalid memory address or nil pointer dereference"
+	// panic is thrown referencing the following line,
+	// root is a nil pointer. Check the caller of this function.
+	for _, child = range root.Children {
+		returncode := fn(child)
+		if returncode&SEARCH_END == SEARCH_END {
+			return returncode
 		}
-		child._executeEach(list, fn)
+		recursion_result := child._executeEach(fn)
+		if recursion_result&SEARCH_END == SEARCH_END {
+			return recursion_result
+		}
 	}
+	return SEARCH_CONTINUE
 }
 
-func (root *Node) GetNodesByRule(r Rule, onlyone bool) []*Node {
+// TODO make this use channels for appending to 
+// the results array. Removes block that would allow
+// _executeEach to run on multiple goroutines
+func (root *Node) _performTreeSearch(r Rule, onlyone bool) []*Node {
 	results := make([]*Node, 0, 5)
-	root.EachNode(&results, func(list *[]*Node, n *Node) bool {
-		if n.Tok.Rule == r {
-			*list = append(*list, n)
-			if onlyone {
-				panic(SEARCH_END)
+
+	results_channel := make(chan *Node)
+	done_channel := make(chan bool)
+
+	// Syncs access to results. This allows making a 
+	// multithreaded EachNode.
+	go func() {
+		for {
+			select {
+			case nd := <-results_channel:
+				results = append(results, nd)
+				break
+			case <-done_channel:
+				return
+				break
 			}
 		}
-		return false
+		return
+	}()
+
+	root.EachNode(func(n *Node) SearchCode {
+		if n.Tok.Rule == r {
+			results_channel <- n
+			if onlyone {
+				return SEARCH_END
+			}
+		}
+		return SEARCH_CONTINUE
 	})
+
+	done_channel <- true // signal end of search
+	close(done_channel)
+	close(results_channel)
 	return results
+}
+
+func (root *Node) GetNodesByRule(r Rule) []*Node {
+	return root._performTreeSearch(r, false)
+}
+
+func (root *Node) GetNodeByRule(r Rule) *Node {
+	matching_nodes := root._performTreeSearch(r, true)
+	if len(matching_nodes) == 0 {
+		// no matches
+		return nil
+	}
+	return matching_nodes[0]
 }
 
 func (root *Node) Source() string {
 	return root.source
+}
+
+/**
+ * Convenience function for getting any 
+ * direct child that matches Rule
+ * O(n) for n = len(Children)
+ */
+func (root *Node) Child(r Rule) *Node {
+	for _, n := range root.Children {
+		if n.Tok.Rule == r {
+			return n
+		}
+	}
+	return nil
 }
 
 func (root *Node) bindSource(s *string) {
@@ -117,4 +180,19 @@ func (me *Node) Next() *Node {
 		return nil
 	}
 	return me.parent.Children[myindex+1]
+}
+
+func (me *Node) ToNodeArray() NodeArray {
+	return NodeArray{me}
+}
+
+// CastPrimitive is a convenience function that
+// returns the NodeArray in the base
+// []*Node format.
+func (arr *NodeArray) CastPrimitive() []*Node {
+	return (*arr).CastPrimitiveLit()
+}
+
+func (arr NodeArray) CastPrimitiveLit() []*Node {
+	return ([]*Node)(arr)
 }

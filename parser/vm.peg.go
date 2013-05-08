@@ -33,6 +33,8 @@ const (
 	Ruleifblock
 	Ruleelseblock
 	Rulevariable
+	RulefuncIdDecl
+	Rulefuncidentifier
 	Ruleparamaterdecl
 	Rulecallparams
 	Ruleparameters
@@ -99,6 +101,8 @@ var Rul3s = [...]string{
 	"ifblock",
 	"elseblock",
 	"variable",
+	"funcIdDecl",
+	"funcidentifier",
 	"paramaterdecl",
 	"callparams",
 	"parameters",
@@ -644,7 +648,7 @@ type VMTree struct {
 	ASTTree Node
 
 	Buffer string
-	rules  [59]func() bool
+	rules  [61]func() bool
 	Parse  func(rule ...int) error
 	Reset  func()
 	TokenTree
@@ -812,7 +816,7 @@ func (p *VMTree) Init() {
 			position, tokenIndex, depth = position0, tokenIndex0, depth0
 			return false
 		},
-		/* 1 routine <- <(kwroutine minspace variable optspace paramaterdecl codeblock)> */
+		/* 1 routine <- <(kwroutine minspace funcIdDecl optspace paramaterdecl codeblock)> */
 		func() bool {
 			position4, tokenIndex4, depth4 := position, tokenIndex, depth
 			{
@@ -824,7 +828,7 @@ func (p *VMTree) Init() {
 				if !rules[Ruleminspace]() {
 					goto l4
 				}
-				if !rules[Rulevariable]() {
+				if !rules[RulefuncIdDecl]() {
 					goto l4
 				}
 				if !rules[Ruleoptspace]() {
@@ -1116,13 +1120,13 @@ func (p *VMTree) Init() {
 			position, tokenIndex, depth = position32, tokenIndex32, depth32
 			return false
 		},
-		/* 11 funccall <- <(variable '(' optspace callparams? ')')> */
+		/* 11 funccall <- <(funcidentifier '(' optspace callparams? ')')> */
 		func() bool {
 			position36, tokenIndex36, depth36 := position, tokenIndex, depth
 			{
 				position37 := position
 				depth++
-				if !rules[Rulevariable]() {
+				if !rules[Rulefuncidentifier]() {
 					goto l36
 				}
 				if buffer[position] != '(' {
@@ -1384,81 +1388,82 @@ func (p *VMTree) Init() {
 			position, tokenIndex, depth = position56, tokenIndex56, depth56
 			return false
 		},
-		/* 18 paramaterdecl <- <('<' optspace parameters? '>')> */
+		/* 18 funcIdDecl <- <variable> */
 		func() bool {
 			position69, tokenIndex69, depth69 := position, tokenIndex, depth
 			{
 				position70 := position
 				depth++
-				if buffer[position] != '<' {
+				if !rules[Rulevariable]() {
 					goto l69
 				}
-				position++
-				if !rules[Ruleoptspace]() {
-					goto l69
-				}
-				{
-					position71, tokenIndex71, depth71 := position, tokenIndex, depth
-					if !rules[Ruleparameters]() {
-						goto l71
-					}
-					goto l72
-				l71:
-					position, tokenIndex, depth = position71, tokenIndex71, depth71
-				}
-			l72:
-				if buffer[position] != '>' {
-					goto l69
-				}
-				position++
 				depth--
-				add(Ruleparamaterdecl, position70)
+				add(RulefuncIdDecl, position70)
 			}
 			return true
 		l69:
 			position, tokenIndex, depth = position69, tokenIndex69, depth69
 			return false
 		},
-		/* 19 callparams <- <(value (comma value)* optspace)> */
+		/* 19 funcidentifier <- <variable> */
+		func() bool {
+			position71, tokenIndex71, depth71 := position, tokenIndex, depth
+			{
+				position72 := position
+				depth++
+				if !rules[Rulevariable]() {
+					goto l71
+				}
+				depth--
+				add(Rulefuncidentifier, position72)
+			}
+			return true
+		l71:
+			position, tokenIndex, depth = position71, tokenIndex71, depth71
+			return false
+		},
+		/* 20 paramaterdecl <- <('<' optspace parameters? '>')> */
 		func() bool {
 			position73, tokenIndex73, depth73 := position, tokenIndex, depth
 			{
 				position74 := position
 				depth++
-				if !rules[Rulevalue]() {
+				if buffer[position] != '<' {
 					goto l73
 				}
-			l75:
-				{
-					position76, tokenIndex76, depth76 := position, tokenIndex, depth
-					if !rules[Rulecomma]() {
-						goto l76
-					}
-					if !rules[Rulevalue]() {
-						goto l76
-					}
-					goto l75
-				l76:
-					position, tokenIndex, depth = position76, tokenIndex76, depth76
-				}
+				position++
 				if !rules[Ruleoptspace]() {
 					goto l73
 				}
+				{
+					position75, tokenIndex75, depth75 := position, tokenIndex, depth
+					if !rules[Ruleparameters]() {
+						goto l75
+					}
+					goto l76
+				l75:
+					position, tokenIndex, depth = position75, tokenIndex75, depth75
+				}
+			l76:
+				if buffer[position] != '>' {
+					goto l73
+				}
+				position++
 				depth--
-				add(Rulecallparams, position74)
+				add(Ruleparamaterdecl, position74)
 			}
 			return true
 		l73:
 			position, tokenIndex, depth = position73, tokenIndex73, depth73
 			return false
 		},
-		/* 20 parameters <- <(variable (comma variable)* optspace)> */
+		/* 21 callparams <- <(value (comma value)* optspace)> */
 		func() bool {
 			position77, tokenIndex77, depth77 := position, tokenIndex, depth
 			{
 				position78 := position
 				depth++
-				if !rules[Rulevariable]() {
+				if !rules[Rulevalue]() {
 					goto l77
 				}
 			l79:
@@ -1467,7 +1472,7 @@ func (p *VMTree) Init() {
 					if !rules[Rulecomma]() {
 						goto l80
 					}
-					if !rules[Rulevariable]() {
+					if !rules[Rulevalue]() {
 						goto l80
 					}
 					goto l79
@@ -1478,102 +1483,71 @@ func (p *VMTree) Init() {
 					goto l77
 				}
 				depth--
-				add(Ruleparameters, position78)
+				add(Rulecallparams, position78)
 			}
 			return true
 		l77:
 			position, tokenIndex, depth = position77, tokenIndex77, depth77
 			return false
 		},
-		/* 21 comma <- <(optspace ',' optspace)> */
+		/* 22 parameters <- <(variable (comma variable)* optspace)> */
 		func() bool {
 			position81, tokenIndex81, depth81 := position, tokenIndex, depth
 			{
 				position82 := position
 				depth++
-				if !rules[Ruleoptspace]() {
+				if !rules[Rulevariable]() {
 					goto l81
 				}
-				if buffer[position] != ',' {
-					goto l81
+			l83:
+				{
+					position84, tokenIndex84, depth84 := position, tokenIndex, depth
+					if !rules[Rulecomma]() {
+						goto l84
+					}
+					if !rules[Rulevariable]() {
+						goto l84
+					}
+					goto l83
+				l84:
+					position, tokenIndex, depth = position84, tokenIndex84, depth84
 				}
-				position++
 				if !rules[Ruleoptspace]() {
 					goto l81
 				}
 				depth--
-				add(Rulecomma, position82)
+				add(Ruleparameters, position82)
 			}
 			return true
 		l81:
 			position, tokenIndex, depth = position81, tokenIndex81, depth81
 			return false
 		},
-		/* 22 kwreserve <- <('r' 'e' 's')> */
-		func() bool {
-			position83, tokenIndex83, depth83 := position, tokenIndex, depth
-			{
-				position84 := position
-				depth++
-				if buffer[position] != 'r' {
-					goto l83
-				}
-				position++
-				if buffer[position] != 'e' {
-					goto l83
-				}
-				position++
-				if buffer[position] != 's' {
-					goto l83
-				}
-				position++
-				depth--
-				add(Rulekwreserve, position84)
-			}
-			return true
-		l83:
-			position, tokenIndex, depth = position83, tokenIndex83, depth83
-			return false
-		},
-		/* 23 kwreturn <- <('r' 'e' 't' 'u' 'r' 'n')> */
+		/* 23 comma <- <(optspace ',' optspace)> */
 		func() bool {
 			position85, tokenIndex85, depth85 := position, tokenIndex, depth
 			{
 				position86 := position
 				depth++
-				if buffer[position] != 'r' {
+				if !rules[Ruleoptspace]() {
+					goto l85
+				}
+				if buffer[position] != ',' {
 					goto l85
 				}
 				position++
-				if buffer[position] != 'e' {
+				if !rules[Ruleoptspace]() {
 					goto l85
 				}
-				position++
-				if buffer[position] != 't' {
-					goto l85
-				}
-				position++
-				if buffer[position] != 'u' {
-					goto l85
-				}
-				position++
-				if buffer[position] != 'r' {
-					goto l85
-				}
-				position++
-				if buffer[position] != 'n' {
-					goto l85
-				}
-				position++
 				depth--
-				add(Rulekwreturn, position86)
+				add(Rulecomma, position86)
 			}
 			return true
 		l85:
 			position, tokenIndex, depth = position85, tokenIndex85, depth85
 			return false
 		},
-		/* 24 kwroutine <- <('r' 'o' 'u' 't' 'i' 'n' 'e')> */
+		/* 24 kwreserve <- <('r' 'e' 's')> */
 		func() bool {
 			position87, tokenIndex87, depth87 := position, tokenIndex, depth
 			{
@@ -1583,45 +1557,37 @@ func (p *VMTree) Init() {
 					goto l87
 				}
 				position++
-				if buffer[position] != 'o' {
-					goto l87
-				}
-				position++
-				if buffer[position] != 'u' {
-					goto l87
-				}
-				position++
-				if buffer[position] != 't' {
-					goto l87
-				}
-				position++
-				if buffer[position] != 'i' {
-					goto l87
-				}
-				position++
-				if buffer[position] != 'n' {
-					goto l87
-				}
-				position++
 				if buffer[position] != 'e' {
 					goto l87
 				}
 				position++
+				if buffer[position] != 's' {
+					goto l87
+				}
+				position++
 				depth--
-				add(Rulekwroutine, position88)
+				add(Rulekwreserve, position88)
 			}
 			return true
 		l87:
 			position, tokenIndex, depth = position87, tokenIndex87, depth87
 			return false
 		},
-		/* 25 kwjump <- <('j' 'u' 'm' 'p')> */
+		/* 25 kwreturn <- <('r' 'e' 't' 'u' 'r' 'n')> */
 		func() bool {
 			position89, tokenIndex89, depth89 := position, tokenIndex, depth
 			{
 				position90 := position
 				depth++
-				if buffer[position] != 'j' {
+				if buffer[position] != 'r' {
+					goto l89
+				}
+				position++
+				if buffer[position] != 'e' {
+					goto l89
+				}
+				position++
+				if buffer[position] != 't' {
 					goto l89
 				}
 				position++
@@ -1629,37 +1595,49 @@ func (p *VMTree) Init() {
 					goto l89
 				}
 				position++
-				if buffer[position] != 'm' {
+				if buffer[position] != 'r' {
 					goto l89
 				}
 				position++
-				if buffer[position] != 'p' {
+				if buffer[position] != 'n' {
 					goto l89
 				}
 				position++
 				depth--
-				add(Rulekwjump, position90)
+				add(Rulekwreturn, position90)
 			}
 			return true
 		l89:
 			position, tokenIndex, depth = position89, tokenIndex89, depth89
 			return false
 		},
-		/* 26 kwlabel <- <('l' 'a' 'b' 'e' 'l')> */
+		/* 26 kwroutine <- <('r' 'o' 'u' 't' 'i' 'n' 'e')> */
 		func() bool {
 			position91, tokenIndex91, depth91 := position, tokenIndex, depth
 			{
 				position92 := position
 				depth++
-				if buffer[position] != 'l' {
+				if buffer[position] != 'r' {
 					goto l91
 				}
 				position++
-				if buffer[position] != 'a' {
+				if buffer[position] != 'o' {
 					goto l91
 				}
 				position++
-				if buffer[position] != 'b' {
+				if buffer[position] != 'u' {
+					goto l91
+				}
+				position++
+				if buffer[position] != 't' {
+					goto l91
+				}
+				position++
+				if buffer[position] != 'i' {
+					goto l91
+				}
+				position++
+				if buffer[position] != 'n' {
 					goto l91
 				}
 				position++
@@ -1667,46 +1645,62 @@ func (p *VMTree) Init() {
 					goto l91
 				}
 				position++
-				if buffer[position] != 'l' {
-					goto l91
-				}
-				position++
 				depth--
-				add(Rulekwlabel, position92)
+				add(Rulekwroutine, position92)
 			}
 			return true
 		l91:
 			position, tokenIndex, depth = position91, tokenIndex91, depth91
 			return false
 		},
-		/* 27 kwif <- <('i' 'f')> */
+		/* 27 kwjump <- <('j' 'u' 'm' 'p')> */
 		func() bool {
 			position93, tokenIndex93, depth93 := position, tokenIndex, depth
 			{
 				position94 := position
 				depth++
-				if buffer[position] != 'i' {
+				if buffer[position] != 'j' {
 					goto l93
 				}
 				position++
-				if buffer[position] != 'f' {
+				if buffer[position] != 'u' {
+					goto l93
+				}
+				position++
+				if buffer[position] != 'm' {
+					goto l93
+				}
+				position++
+				if buffer[position] != 'p' {
 					goto l93
 				}
 				position++
 				depth--
-				add(Rulekwif, position94)
+				add(Rulekwjump, position94)
 			}
 			return true
 		l93:
 			position, tokenIndex, depth = position93, tokenIndex93, depth93
 			return false
 		},
-		/* 28 kwelse <- <('e' 'l' 's' 'e')> */
+		/* 28 kwlabel <- <('l' 'a' 'b' 'e' 'l')> */
 		func() bool {
 			position95, tokenIndex95, depth95 := position, tokenIndex, depth
 			{
 				position96 := position
 				depth++
+				if buffer[position] != 'l' {
+					goto l95
+				}
+				position++
+				if buffer[position] != 'a' {
+					goto l95
+				}
+				position++
+				if buffer[position] != 'b' {
+					goto l95
+				}
+				position++
 				if buffer[position] != 'e' {
 					goto l95
 				}
@@ -1715,92 +1709,94 @@ func (p *VMTree) Init() {
 					goto l95
 				}
 				position++
-				if buffer[position] != 's' {
-					goto l95
-				}
-				position++
-				if buffer[position] != 'e' {
-					goto l95
-				}
-				position++
 				depth--
-				add(Rulekwelse, position96)
+				add(Rulekwlabel, position96)
 			}
 			return true
 		l95:
 			position, tokenIndex, depth = position95, tokenIndex95, depth95
 			return false
 		},
-		/* 29 tokadd <- <('+' optspace)> */
+		/* 29 kwif <- <('i' 'f')> */
 		func() bool {
 			position97, tokenIndex97, depth97 := position, tokenIndex, depth
 			{
 				position98 := position
 				depth++
-				if buffer[position] != '+' {
+				if buffer[position] != 'i' {
 					goto l97
 				}
 				position++
-				if !rules[Ruleoptspace]() {
+				if buffer[position] != 'f' {
 					goto l97
 				}
+				position++
 				depth--
-				add(Ruletokadd, position98)
+				add(Rulekwif, position98)
 			}
 			return true
 		l97:
 			position, tokenIndex, depth = position97, tokenIndex97, depth97
 			return false
 		},
-		/* 30 toksub <- <('-' optspace)> */
+		/* 30 kwelse <- <('e' 'l' 's' 'e')> */
 		func() bool {
 			position99, tokenIndex99, depth99 := position, tokenIndex, depth
 			{
 				position100 := position
 				depth++
-				if buffer[position] != '-' {
+				if buffer[position] != 'e' {
 					goto l99
 				}
 				position++
-				if !rules[Ruleoptspace]() {
+				if buffer[position] != 'l' {
 					goto l99
 				}
+				position++
+				if buffer[position] != 's' {
+					goto l99
+				}
+				position++
+				if buffer[position] != 'e' {
+					goto l99
+				}
+				position++
 				depth--
-				add(Ruletoksub, position100)
+				add(Rulekwelse, position100)
 			}
 			return true
 		l99:
 			position, tokenIndex, depth = position99, tokenIndex99, depth99
 			return false
 		},
-		/* 31 tokmul <- <('*' space)> */
+		/* 31 tokadd <- <('+' optspace)> */
 		func() bool {
 			position101, tokenIndex101, depth101 := position, tokenIndex, depth
 			{
 				position102 := position
 				depth++
-				if buffer[position] != '*' {
+				if buffer[position] != '+' {
 					goto l101
 				}
 				position++
-				if !rules[Rulespace]() {
+				if !rules[Ruleoptspace]() {
 					goto l101
 				}
 				depth--
-				add(Ruletokmul, position102)
+				add(Ruletokadd, position102)
 			}
 			return true
 		l101:
 			position, tokenIndex, depth = position101, tokenIndex101, depth101
 			return false
 		},
-		/* 32 tokdiv <- <('/' optspace)> */
+		/* 32 toksub <- <('-' optspace)> */
 		func() bool {
 			position103, tokenIndex103, depth103 := position, tokenIndex, depth
 			{
 				position104 := position
 				depth++
-				if buffer[position] != '/' {
+				if buffer[position] != '-' {
 					goto l103
 				}
 				position++
@@ -1808,253 +1804,251 @@ func (p *VMTree) Init() {
 					goto l103
 				}
 				depth--
-				add(Ruletokdiv, position104)
+				add(Ruletoksub, position104)
 			}
 			return true
 		l103:
 			position, tokenIndex, depth = position103, tokenIndex103, depth103
 			return false
 		},
-		/* 33 endl <- <(optspace ';')> */
+		/* 33 tokmul <- <('*' space)> */
 		func() bool {
 			position105, tokenIndex105, depth105 := position, tokenIndex, depth
 			{
 				position106 := position
 				depth++
-				if !rules[Ruleoptspace]() {
-					goto l105
-				}
-				if buffer[position] != ';' {
+				if buffer[position] != '*' {
 					goto l105
 				}
 				position++
+				if !rules[Rulespace]() {
+					goto l105
+				}
 				depth--
-				add(Ruleendl, position106)
+				add(Ruletokmul, position106)
 			}
 			return true
 		l105:
 			position, tokenIndex, depth = position105, tokenIndex105, depth105
 			return false
 		},
-		/* 34 rawmath <- <(value optspace (tokadd / toksub / tokmul / tokdiv) optspace value)> */
+		/* 34 tokdiv <- <('/' optspace)> */
 		func() bool {
 			position107, tokenIndex107, depth107 := position, tokenIndex, depth
 			{
 				position108 := position
 				depth++
-				if !rules[Rulevalue]() {
+				if buffer[position] != '/' {
 					goto l107
 				}
+				position++
 				if !rules[Ruleoptspace]() {
-					goto l107
-				}
-				{
-					position109, tokenIndex109, depth109 := position, tokenIndex, depth
-					if !rules[Ruletokadd]() {
-						goto l110
-					}
-					goto l109
-				l110:
-					position, tokenIndex, depth = position109, tokenIndex109, depth109
-					if !rules[Ruletoksub]() {
-						goto l111
-					}
-					goto l109
-				l111:
-					position, tokenIndex, depth = position109, tokenIndex109, depth109
-					if !rules[Ruletokmul]() {
-						goto l112
-					}
-					goto l109
-				l112:
-					position, tokenIndex, depth = position109, tokenIndex109, depth109
-					if !rules[Ruletokdiv]() {
-						goto l107
-					}
-				}
-			l109:
-				if !rules[Ruleoptspace]() {
-					goto l107
-				}
-				if !rules[Rulevalue]() {
 					goto l107
 				}
 				depth--
-				add(Rulerawmath, position108)
+				add(Ruletokdiv, position108)
 			}
 			return true
 		l107:
 			position, tokenIndex, depth = position107, tokenIndex107, depth107
 			return false
 		},
-		/* 35 math <- <(optspace (rawmath / (popen rawmath pclose)) optspace)> */
+		/* 35 endl <- <(optspace ';')> */
 		func() bool {
-			position113, tokenIndex113, depth113 := position, tokenIndex, depth
+			position109, tokenIndex109, depth109 := position, tokenIndex, depth
 			{
-				position114 := position
+				position110 := position
 				depth++
 				if !rules[Ruleoptspace]() {
-					goto l113
+					goto l109
 				}
-				{
-					position115, tokenIndex115, depth115 := position, tokenIndex, depth
-					if !rules[Rulerawmath]() {
-						goto l116
-					}
-					goto l115
-				l116:
-					position, tokenIndex, depth = position115, tokenIndex115, depth115
-					if !rules[Rulepopen]() {
-						goto l113
-					}
-					if !rules[Rulerawmath]() {
-						goto l113
-					}
-					if !rules[Rulepclose]() {
-						goto l113
-					}
+				if buffer[position] != ';' {
+					goto l109
 				}
-			l115:
-				if !rules[Ruleoptspace]() {
-					goto l113
-				}
+				position++
 				depth--
-				add(Rulemath, position114)
+				add(Ruleendl, position110)
 			}
 			return true
-		l113:
-			position, tokenIndex, depth = position113, tokenIndex113, depth113
+		l109:
+			position, tokenIndex, depth = position109, tokenIndex109, depth109
 			return false
 		},
-		/* 36 popen <- <('(' optspace)> */
+		/* 36 rawmath <- <(value optspace (tokadd / toksub / tokmul / tokdiv) optspace value)> */
+		func() bool {
+			position111, tokenIndex111, depth111 := position, tokenIndex, depth
+			{
+				position112 := position
+				depth++
+				if !rules[Rulevalue]() {
+					goto l111
+				}
+				if !rules[Ruleoptspace]() {
+					goto l111
+				}
+				{
+					position113, tokenIndex113, depth113 := position, tokenIndex, depth
+					if !rules[Ruletokadd]() {
+						goto l114
+					}
+					goto l113
+				l114:
+					position, tokenIndex, depth = position113, tokenIndex113, depth113
+					if !rules[Ruletoksub]() {
+						goto l115
+					}
+					goto l113
+				l115:
+					position, tokenIndex, depth = position113, tokenIndex113, depth113
+					if !rules[Ruletokmul]() {
+						goto l116
+					}
+					goto l113
+				l116:
+					position, tokenIndex, depth = position113, tokenIndex113, depth113
+					if !rules[Ruletokdiv]() {
+						goto l111
+					}
+				}
+			l113:
+				if !rules[Ruleoptspace]() {
+					goto l111
+				}
+				if !rules[Rulevalue]() {
+					goto l111
+				}
+				depth--
+				add(Rulerawmath, position112)
+			}
+			return true
+		l111:
+			position, tokenIndex, depth = position111, tokenIndex111, depth111
+			return false
+		},
+		/* 37 math <- <(optspace (rawmath / (popen rawmath pclose)) optspace)> */
 		func() bool {
 			position117, tokenIndex117, depth117 := position, tokenIndex, depth
 			{
 				position118 := position
 				depth++
-				if buffer[position] != '(' {
+				if !rules[Ruleoptspace]() {
 					goto l117
 				}
-				position++
+				{
+					position119, tokenIndex119, depth119 := position, tokenIndex, depth
+					if !rules[Rulerawmath]() {
+						goto l120
+					}
+					goto l119
+				l120:
+					position, tokenIndex, depth = position119, tokenIndex119, depth119
+					if !rules[Rulepopen]() {
+						goto l117
+					}
+					if !rules[Rulerawmath]() {
+						goto l117
+					}
+					if !rules[Rulepclose]() {
+						goto l117
+					}
+				}
+			l119:
 				if !rules[Ruleoptspace]() {
 					goto l117
 				}
 				depth--
-				add(Rulepopen, position118)
+				add(Rulemath, position118)
 			}
 			return true
 		l117:
 			position, tokenIndex, depth = position117, tokenIndex117, depth117
 			return false
 		},
-		/* 37 pclose <- <(')' optspace)> */
-		func() bool {
-			position119, tokenIndex119, depth119 := position, tokenIndex, depth
-			{
-				position120 := position
-				depth++
-				if buffer[position] != ')' {
-					goto l119
-				}
-				position++
-				if !rules[Ruleoptspace]() {
-					goto l119
-				}
-				depth--
-				add(Rulepclose, position120)
-			}
-			return true
-		l119:
-			position, tokenIndex, depth = position119, tokenIndex119, depth119
-			return false
-		},
-		/* 38 toklt <- <'<'> */
+		/* 38 popen <- <('(' optspace)> */
 		func() bool {
 			position121, tokenIndex121, depth121 := position, tokenIndex, depth
 			{
 				position122 := position
 				depth++
-				if buffer[position] != '<' {
+				if buffer[position] != '(' {
 					goto l121
 				}
 				position++
+				if !rules[Ruleoptspace]() {
+					goto l121
+				}
 				depth--
-				add(Ruletoklt, position122)
+				add(Rulepopen, position122)
 			}
 			return true
 		l121:
 			position, tokenIndex, depth = position121, tokenIndex121, depth121
 			return false
 		},
-		/* 39 tokgt <- <'>'> */
+		/* 39 pclose <- <(')' optspace)> */
 		func() bool {
 			position123, tokenIndex123, depth123 := position, tokenIndex, depth
 			{
 				position124 := position
 				depth++
-				if buffer[position] != '>' {
+				if buffer[position] != ')' {
 					goto l123
 				}
 				position++
+				if !rules[Ruleoptspace]() {
+					goto l123
+				}
 				depth--
-				add(Ruletokgt, position124)
+				add(Rulepclose, position124)
 			}
 			return true
 		l123:
 			position, tokenIndex, depth = position123, tokenIndex123, depth123
 			return false
 		},
-		/* 40 tokeq <- <('=' '=')> */
+		/* 40 toklt <- <'<'> */
 		func() bool {
 			position125, tokenIndex125, depth125 := position, tokenIndex, depth
 			{
 				position126 := position
 				depth++
-				if buffer[position] != '=' {
-					goto l125
-				}
-				position++
-				if buffer[position] != '=' {
+				if buffer[position] != '<' {
 					goto l125
 				}
 				position++
 				depth--
-				add(Ruletokeq, position126)
+				add(Ruletoklt, position126)
 			}
 			return true
 		l125:
 			position, tokenIndex, depth = position125, tokenIndex125, depth125
 			return false
 		},
-		/* 41 tokle <- <('<' '=')> */
+		/* 41 tokgt <- <'>'> */
 		func() bool {
 			position127, tokenIndex127, depth127 := position, tokenIndex, depth
 			{
 				position128 := position
 				depth++
-				if buffer[position] != '<' {
-					goto l127
-				}
-				position++
-				if buffer[position] != '=' {
+				if buffer[position] != '>' {
 					goto l127
 				}
 				position++
 				depth--
-				add(Ruletokle, position128)
+				add(Ruletokgt, position128)
 			}
 			return true
 		l127:
 			position, tokenIndex, depth = position127, tokenIndex127, depth127
 			return false
 		},
-		/* 42 tokge <- <('>' '=')> */
+		/* 42 tokeq <- <('=' '=')> */
 		func() bool {
 			position129, tokenIndex129, depth129 := position, tokenIndex, depth
 			{
 				position130 := position
 				depth++
-				if buffer[position] != '>' {
+				if buffer[position] != '=' {
 					goto l129
 				}
 				position++
@@ -2063,20 +2057,20 @@ func (p *VMTree) Init() {
 				}
 				position++
 				depth--
-				add(Ruletokge, position130)
+				add(Ruletokeq, position130)
 			}
 			return true
 		l129:
 			position, tokenIndex, depth = position129, tokenIndex129, depth129
 			return false
 		},
-		/* 43 tokne <- <('!' '=')> */
+		/* 43 tokle <- <('<' '=')> */
 		func() bool {
 			position131, tokenIndex131, depth131 := position, tokenIndex, depth
 			{
 				position132 := position
 				depth++
-				if buffer[position] != '!' {
+				if buffer[position] != '<' {
 					goto l131
 				}
 				position++
@@ -2085,364 +2079,381 @@ func (p *VMTree) Init() {
 				}
 				position++
 				depth--
-				add(Ruletokne, position132)
+				add(Ruletokle, position132)
 			}
 			return true
 		l131:
 			position, tokenIndex, depth = position131, tokenIndex131, depth131
 			return false
 		},
-		/* 44 comparisontoken <- <(toklt / tokgt / tokeq / tokle / tokge / tokne)> */
+		/* 44 tokge <- <('>' '=')> */
 		func() bool {
 			position133, tokenIndex133, depth133 := position, tokenIndex, depth
 			{
 				position134 := position
 				depth++
-				{
-					position135, tokenIndex135, depth135 := position, tokenIndex, depth
-					if !rules[Ruletoklt]() {
-						goto l136
-					}
-					goto l135
-				l136:
-					position, tokenIndex, depth = position135, tokenIndex135, depth135
-					if !rules[Ruletokgt]() {
-						goto l137
-					}
-					goto l135
-				l137:
-					position, tokenIndex, depth = position135, tokenIndex135, depth135
-					if !rules[Ruletokeq]() {
-						goto l138
-					}
-					goto l135
-				l138:
-					position, tokenIndex, depth = position135, tokenIndex135, depth135
-					if !rules[Ruletokle]() {
-						goto l139
-					}
-					goto l135
-				l139:
-					position, tokenIndex, depth = position135, tokenIndex135, depth135
-					if !rules[Ruletokge]() {
-						goto l140
-					}
-					goto l135
-				l140:
-					position, tokenIndex, depth = position135, tokenIndex135, depth135
-					if !rules[Ruletokne]() {
-						goto l133
-					}
+				if buffer[position] != '>' {
+					goto l133
 				}
-			l135:
+				position++
+				if buffer[position] != '=' {
+					goto l133
+				}
+				position++
 				depth--
-				add(Rulecomparisontoken, position134)
+				add(Ruletokge, position134)
 			}
 			return true
 		l133:
 			position, tokenIndex, depth = position133, tokenIndex133, depth133
 			return false
 		},
-		/* 45 comparison <- <(value minspace comparisontoken minspace value)> */
+		/* 45 tokne <- <('!' '=')> */
 		func() bool {
-			position141, tokenIndex141, depth141 := position, tokenIndex, depth
+			position135, tokenIndex135, depth135 := position, tokenIndex, depth
 			{
-				position142 := position
+				position136 := position
 				depth++
-				if !rules[Rulevalue]() {
-					goto l141
+				if buffer[position] != '!' {
+					goto l135
 				}
-				if !rules[Ruleminspace]() {
-					goto l141
+				position++
+				if buffer[position] != '=' {
+					goto l135
 				}
-				if !rules[Rulecomparisontoken]() {
-					goto l141
-				}
-				if !rules[Ruleminspace]() {
-					goto l141
-				}
-				if !rules[Rulevalue]() {
-					goto l141
-				}
+				position++
 				depth--
-				add(Rulecomparison, position142)
+				add(Ruletokne, position136)
 			}
 			return true
-		l141:
-			position, tokenIndex, depth = position141, tokenIndex141, depth141
+		l135:
+			position, tokenIndex, depth = position135, tokenIndex135, depth135
 			return false
 		},
-		/* 46 comparison_paren <- <(popen optspace (comparison / value) optspace pclose)> */
+		/* 46 comparisontoken <- <(toklt / tokgt / tokeq / tokle / tokge / tokne)> */
 		func() bool {
-			position143, tokenIndex143, depth143 := position, tokenIndex, depth
+			position137, tokenIndex137, depth137 := position, tokenIndex, depth
 			{
-				position144 := position
+				position138 := position
 				depth++
-				if !rules[Rulepopen]() {
-					goto l143
-				}
-				if !rules[Ruleoptspace]() {
-					goto l143
-				}
 				{
-					position145, tokenIndex145, depth145 := position, tokenIndex, depth
-					if !rules[Rulecomparison]() {
-						goto l146
+					position139, tokenIndex139, depth139 := position, tokenIndex, depth
+					if !rules[Ruletoklt]() {
+						goto l140
 					}
-					goto l145
-				l146:
-					position, tokenIndex, depth = position145, tokenIndex145, depth145
-					if !rules[Rulevalue]() {
+					goto l139
+				l140:
+					position, tokenIndex, depth = position139, tokenIndex139, depth139
+					if !rules[Ruletokgt]() {
+						goto l141
+					}
+					goto l139
+				l141:
+					position, tokenIndex, depth = position139, tokenIndex139, depth139
+					if !rules[Ruletokeq]() {
+						goto l142
+					}
+					goto l139
+				l142:
+					position, tokenIndex, depth = position139, tokenIndex139, depth139
+					if !rules[Ruletokle]() {
 						goto l143
 					}
+					goto l139
+				l143:
+					position, tokenIndex, depth = position139, tokenIndex139, depth139
+					if !rules[Ruletokge]() {
+						goto l144
+					}
+					goto l139
+				l144:
+					position, tokenIndex, depth = position139, tokenIndex139, depth139
+					if !rules[Ruletokne]() {
+						goto l137
+					}
 				}
-			l145:
-				if !rules[Ruleoptspace]() {
-					goto l143
-				}
-				if !rules[Rulepclose]() {
-					goto l143
-				}
+			l139:
 				depth--
-				add(Rulecomparison_paren, position144)
+				add(Rulecomparisontoken, position138)
 			}
 			return true
-		l143:
-			position, tokenIndex, depth = position143, tokenIndex143, depth143
+		l137:
+			position, tokenIndex, depth = position137, tokenIndex137, depth137
 			return false
 		},
-		/* 47 positivenum <- <([1-9] digit*)> */
+		/* 47 comparison <- <(value minspace comparisontoken minspace value)> */
+		func() bool {
+			position145, tokenIndex145, depth145 := position, tokenIndex, depth
+			{
+				position146 := position
+				depth++
+				if !rules[Rulevalue]() {
+					goto l145
+				}
+				if !rules[Ruleminspace]() {
+					goto l145
+				}
+				if !rules[Rulecomparisontoken]() {
+					goto l145
+				}
+				if !rules[Ruleminspace]() {
+					goto l145
+				}
+				if !rules[Rulevalue]() {
+					goto l145
+				}
+				depth--
+				add(Rulecomparison, position146)
+			}
+			return true
+		l145:
+			position, tokenIndex, depth = position145, tokenIndex145, depth145
+			return false
+		},
+		/* 48 comparison_paren <- <(popen optspace (comparison / value) optspace pclose)> */
 		func() bool {
 			position147, tokenIndex147, depth147 := position, tokenIndex, depth
 			{
 				position148 := position
 				depth++
-				if c := buffer[position]; c < '1' || c > '9' {
+				if !rules[Rulepopen]() {
 					goto l147
 				}
-				position++
-			l149:
+				if !rules[Ruleoptspace]() {
+					goto l147
+				}
 				{
-					position150, tokenIndex150, depth150 := position, tokenIndex, depth
-					if !rules[Ruledigit]() {
+					position149, tokenIndex149, depth149 := position, tokenIndex, depth
+					if !rules[Rulecomparison]() {
 						goto l150
 					}
 					goto l149
 				l150:
-					position, tokenIndex, depth = position150, tokenIndex150, depth150
+					position, tokenIndex, depth = position149, tokenIndex149, depth149
+					if !rules[Rulevalue]() {
+						goto l147
+					}
+				}
+			l149:
+				if !rules[Ruleoptspace]() {
+					goto l147
+				}
+				if !rules[Rulepclose]() {
+					goto l147
 				}
 				depth--
-				add(Rulepositivenum, position148)
+				add(Rulecomparison_paren, position148)
 			}
 			return true
 		l147:
 			position, tokenIndex, depth = position147, tokenIndex147, depth147
 			return false
 		},
-		/* 48 negativenum <- <('-' positivenum)> */
+		/* 49 positivenum <- <([1-9] digit*)> */
 		func() bool {
 			position151, tokenIndex151, depth151 := position, tokenIndex, depth
 			{
 				position152 := position
 				depth++
-				if buffer[position] != '-' {
+				if c := buffer[position]; c < '1' || c > '9' {
 					goto l151
 				}
 				position++
-				if !rules[Rulepositivenum]() {
-					goto l151
+			l153:
+				{
+					position154, tokenIndex154, depth154 := position, tokenIndex, depth
+					if !rules[Ruledigit]() {
+						goto l154
+					}
+					goto l153
+				l154:
+					position, tokenIndex, depth = position154, tokenIndex154, depth154
 				}
 				depth--
-				add(Rulenegativenum, position152)
+				add(Rulepositivenum, position152)
 			}
 			return true
 		l151:
 			position, tokenIndex, depth = position151, tokenIndex151, depth151
 			return false
 		},
-		/* 49 number <- <(positivenum / negativenum)> */
+		/* 50 negativenum <- <('-' positivenum)> */
 		func() bool {
-			position153, tokenIndex153, depth153 := position, tokenIndex, depth
+			position155, tokenIndex155, depth155 := position, tokenIndex, depth
 			{
-				position154 := position
+				position156 := position
 				depth++
-				{
-					position155, tokenIndex155, depth155 := position, tokenIndex, depth
-					if !rules[Rulepositivenum]() {
-						goto l156
-					}
+				if buffer[position] != '-' {
 					goto l155
-				l156:
-					position, tokenIndex, depth = position155, tokenIndex155, depth155
-					if !rules[Rulenegativenum]() {
-						goto l153
-					}
 				}
-			l155:
+				position++
+				if !rules[Rulepositivenum]() {
+					goto l155
+				}
 				depth--
-				add(Rulenumber, position154)
+				add(Rulenegativenum, position156)
 			}
 			return true
-		l153:
-			position, tokenIndex, depth = position153, tokenIndex153, depth153
+		l155:
+			position, tokenIndex, depth = position155, tokenIndex155, depth155
 			return false
 		},
-		/* 50 digit <- <[0-9]> */
+		/* 51 number <- <(positivenum / negativenum)> */
 		func() bool {
 			position157, tokenIndex157, depth157 := position, tokenIndex, depth
 			{
 				position158 := position
 				depth++
-				if c := buffer[position]; c < '0' || c > '9' {
-					goto l157
+				{
+					position159, tokenIndex159, depth159 := position, tokenIndex, depth
+					if !rules[Rulepositivenum]() {
+						goto l160
+					}
+					goto l159
+				l160:
+					position, tokenIndex, depth = position159, tokenIndex159, depth159
+					if !rules[Rulenegativenum]() {
+						goto l157
+					}
 				}
-				position++
+			l159:
 				depth--
-				add(Ruledigit, position158)
+				add(Rulenumber, position158)
 			}
 			return true
 		l157:
 			position, tokenIndex, depth = position157, tokenIndex157, depth157
 			return false
 		},
-		/* 51 commentblock <- <('/' '*' (!('*' '/') .)* ('*' '/'))> */
+		/* 52 digit <- <[0-9]> */
 		func() bool {
-			position159, tokenIndex159, depth159 := position, tokenIndex, depth
+			position161, tokenIndex161, depth161 := position, tokenIndex, depth
 			{
-				position160 := position
+				position162 := position
+				depth++
+				if c := buffer[position]; c < '0' || c > '9' {
+					goto l161
+				}
+				position++
+				depth--
+				add(Ruledigit, position162)
+			}
+			return true
+		l161:
+			position, tokenIndex, depth = position161, tokenIndex161, depth161
+			return false
+		},
+		/* 53 commentblock <- <('/' '*' (!('*' '/') .)* ('*' '/'))> */
+		func() bool {
+			position163, tokenIndex163, depth163 := position, tokenIndex, depth
+			{
+				position164 := position
 				depth++
 				if buffer[position] != '/' {
-					goto l159
+					goto l163
 				}
 				position++
 				if buffer[position] != '*' {
-					goto l159
+					goto l163
 				}
 				position++
-			l161:
+			l165:
 				{
-					position162, tokenIndex162, depth162 := position, tokenIndex, depth
+					position166, tokenIndex166, depth166 := position, tokenIndex, depth
 					{
-						position163, tokenIndex163, depth163 := position, tokenIndex, depth
+						position167, tokenIndex167, depth167 := position, tokenIndex, depth
 						if buffer[position] != '*' {
-							goto l163
+							goto l167
 						}
 						position++
 						if buffer[position] != '/' {
-							goto l163
+							goto l167
 						}
 						position++
-						goto l162
-					l163:
-						position, tokenIndex, depth = position163, tokenIndex163, depth163
+						goto l166
+					l167:
+						position, tokenIndex, depth = position167, tokenIndex167, depth167
 					}
 					if !matchDot() {
-						goto l162
+						goto l166
 					}
-					goto l161
-				l162:
-					position, tokenIndex, depth = position162, tokenIndex162, depth162
+					goto l165
+				l166:
+					position, tokenIndex, depth = position166, tokenIndex166, depth166
 				}
 				if buffer[position] != '*' {
-					goto l159
+					goto l163
 				}
 				position++
 				if buffer[position] != '/' {
-					goto l159
+					goto l163
 				}
 				position++
 				depth--
-				add(Rulecommentblock, position160)
+				add(Rulecommentblock, position164)
 			}
 			return true
-		l159:
-			position, tokenIndex, depth = position159, tokenIndex159, depth159
+		l163:
+			position, tokenIndex, depth = position163, tokenIndex163, depth163
 			return false
 		},
-		/* 52 commentdoubleslash <- <('/' '/' (!('\n' / '\r') .)* space)> */
+		/* 54 commentdoubleslash <- <('/' '/' (!('\n' / '\r') .)* space)> */
 		func() bool {
-			position164, tokenIndex164, depth164 := position, tokenIndex, depth
+			position168, tokenIndex168, depth168 := position, tokenIndex, depth
 			{
-				position165 := position
+				position169 := position
 				depth++
 				if buffer[position] != '/' {
-					goto l164
+					goto l168
 				}
 				position++
 				if buffer[position] != '/' {
-					goto l164
+					goto l168
 				}
 				position++
-			l166:
+			l170:
 				{
-					position167, tokenIndex167, depth167 := position, tokenIndex, depth
+					position171, tokenIndex171, depth171 := position, tokenIndex, depth
 					{
-						position168, tokenIndex168, depth168 := position, tokenIndex, depth
+						position172, tokenIndex172, depth172 := position, tokenIndex, depth
 						{
-							position169, tokenIndex169, depth169 := position, tokenIndex, depth
+							position173, tokenIndex173, depth173 := position, tokenIndex, depth
 							if buffer[position] != '\n' {
-								goto l170
+								goto l174
 							}
 							position++
-							goto l169
-						l170:
-							position, tokenIndex, depth = position169, tokenIndex169, depth169
+							goto l173
+						l174:
+							position, tokenIndex, depth = position173, tokenIndex173, depth173
 							if buffer[position] != '\r' {
-								goto l168
+								goto l172
 							}
 							position++
 						}
-					l169:
-						goto l167
-					l168:
-						position, tokenIndex, depth = position168, tokenIndex168, depth168
+					l173:
+						goto l171
+					l172:
+						position, tokenIndex, depth = position172, tokenIndex172, depth172
 					}
 					if !matchDot() {
-						goto l167
-					}
-					goto l166
-				l167:
-					position, tokenIndex, depth = position167, tokenIndex167, depth167
-				}
-				if !rules[Rulespace]() {
-					goto l164
-				}
-				depth--
-				add(Rulecommentdoubleslash, position165)
-			}
-			return true
-		l164:
-			position, tokenIndex, depth = position164, tokenIndex164, depth164
-			return false
-		},
-		/* 53 comment <- <(commentblock / commentdoubleslash)> */
-		func() bool {
-			position171, tokenIndex171, depth171 := position, tokenIndex, depth
-			{
-				position172 := position
-				depth++
-				{
-					position173, tokenIndex173, depth173 := position, tokenIndex, depth
-					if !rules[Rulecommentblock]() {
-						goto l174
-					}
-					goto l173
-				l174:
-					position, tokenIndex, depth = position173, tokenIndex173, depth173
-					if !rules[Rulecommentdoubleslash]() {
 						goto l171
 					}
+					goto l170
+				l171:
+					position, tokenIndex, depth = position171, tokenIndex171, depth171
 				}
-			l173:
+				if !rules[Rulespace]() {
+					goto l168
+				}
 				depth--
-				add(Rulecomment, position172)
+				add(Rulecommentdoubleslash, position169)
 			}
 			return true
-		l171:
-			position, tokenIndex, depth = position171, tokenIndex171, depth171
+		l168:
+			position, tokenIndex, depth = position168, tokenIndex168, depth168
 			return false
 		},
-		/* 54 literalspace <- <(' ' / '\t' / '\n' / '\r')> */
+		/* 55 comment <- <(commentblock / commentdoubleslash)> */
 		func() bool {
 			position175, tokenIndex175, depth175 := position, tokenIndex, depth
 			{
@@ -2450,100 +2461,104 @@ func (p *VMTree) Init() {
 				depth++
 				{
 					position177, tokenIndex177, depth177 := position, tokenIndex, depth
-					if buffer[position] != ' ' {
+					if !rules[Rulecommentblock]() {
 						goto l178
 					}
-					position++
 					goto l177
 				l178:
 					position, tokenIndex, depth = position177, tokenIndex177, depth177
-					if buffer[position] != '\t' {
-						goto l179
-					}
-					position++
-					goto l177
-				l179:
-					position, tokenIndex, depth = position177, tokenIndex177, depth177
-					if buffer[position] != '\n' {
-						goto l180
-					}
-					position++
-					goto l177
-				l180:
-					position, tokenIndex, depth = position177, tokenIndex177, depth177
-					if buffer[position] != '\r' {
+					if !rules[Rulecommentdoubleslash]() {
 						goto l175
 					}
-					position++
 				}
 			l177:
 				depth--
-				add(Ruleliteralspace, position176)
+				add(Rulecomment, position176)
 			}
 			return true
 		l175:
 			position, tokenIndex, depth = position175, tokenIndex175, depth175
 			return false
 		},
-		/* 55 space <- <(comment / literalspace)> */
+		/* 56 literalspace <- <(' ' / '\t' / '\n' / '\r')> */
 		func() bool {
-			position181, tokenIndex181, depth181 := position, tokenIndex, depth
+			position179, tokenIndex179, depth179 := position, tokenIndex, depth
 			{
-				position182 := position
+				position180 := position
 				depth++
 				{
-					position183, tokenIndex183, depth183 := position, tokenIndex, depth
-					if !rules[Rulecomment]() {
+					position181, tokenIndex181, depth181 := position, tokenIndex, depth
+					if buffer[position] != ' ' {
+						goto l182
+					}
+					position++
+					goto l181
+				l182:
+					position, tokenIndex, depth = position181, tokenIndex181, depth181
+					if buffer[position] != '\t' {
+						goto l183
+					}
+					position++
+					goto l181
+				l183:
+					position, tokenIndex, depth = position181, tokenIndex181, depth181
+					if buffer[position] != '\n' {
 						goto l184
 					}
-					goto l183
+					position++
+					goto l181
 				l184:
-					position, tokenIndex, depth = position183, tokenIndex183, depth183
-					if !rules[Ruleliteralspace]() {
-						goto l181
+					position, tokenIndex, depth = position181, tokenIndex181, depth181
+					if buffer[position] != '\r' {
+						goto l179
 					}
+					position++
 				}
-			l183:
+			l181:
 				depth--
-				add(Rulespace, position182)
+				add(Ruleliteralspace, position180)
 			}
 			return true
-		l181:
-			position, tokenIndex, depth = position181, tokenIndex181, depth181
+		l179:
+			position, tokenIndex, depth = position179, tokenIndex179, depth179
 			return false
 		},
-		/* 56 minspace <- <space+> */
+		/* 57 space <- <(comment / literalspace)> */
 		func() bool {
 			position185, tokenIndex185, depth185 := position, tokenIndex, depth
 			{
 				position186 := position
 				depth++
-				if !rules[Rulespace]() {
-					goto l185
-				}
-			l187:
 				{
-					position188, tokenIndex188, depth188 := position, tokenIndex, depth
-					if !rules[Rulespace]() {
+					position187, tokenIndex187, depth187 := position, tokenIndex, depth
+					if !rules[Rulecomment]() {
 						goto l188
 					}
 					goto l187
 				l188:
-					position, tokenIndex, depth = position188, tokenIndex188, depth188
+					position, tokenIndex, depth = position187, tokenIndex187, depth187
+					if !rules[Ruleliteralspace]() {
+						goto l185
+					}
 				}
+			l187:
 				depth--
-				add(Ruleminspace, position186)
+				add(Rulespace, position186)
 			}
 			return true
 		l185:
 			position, tokenIndex, depth = position185, tokenIndex185, depth185
 			return false
 		},
-		/* 57 optspace <- <space*> */
+		/* 58 minspace <- <space+> */
 		func() bool {
+			position189, tokenIndex189, depth189 := position, tokenIndex, depth
 			{
 				position190 := position
 				depth++
+				if !rules[Rulespace]() {
+					goto l189
+				}
 			l191:
 				{
 					position192, tokenIndex192, depth192 := position, tokenIndex, depth
@@ -2555,7 +2570,30 @@ func (p *VMTree) Init() {
 					position, tokenIndex, depth = position192, tokenIndex192, depth192
 				}
 				depth--
-				add(Ruleoptspace, position190)
+				add(Ruleminspace, position190)
+			}
+			return true
+		l189:
+			position, tokenIndex, depth = position189, tokenIndex189, depth189
+			return false
+		},
+		/* 59 optspace <- <space*> */
+		func() bool {
+			{
+				position194 := position
+				depth++
+			l195:
+				{
+					position196, tokenIndex196, depth196 := position, tokenIndex, depth
+					if !rules[Rulespace]() {
+						goto l196
+					}
+					goto l195
+				l196:
+					position, tokenIndex, depth = position196, tokenIndex196, depth196
+				}
+				depth--
+				add(Ruleoptspace, position194)
 			}
 			return true
 		},

@@ -12,14 +12,14 @@ import (
 
 type VariableMeta struct {
 	name      string
-	locations []*parser.State16
+	locations []parser.State16
 	register  *Register
 	allocated bool
 }
 
 func NewVariableMeta() VariableMeta {
 	v := VariableMeta{allocated: false}
-	v.locations = make([]*parser.State16, 0, 5)
+	v.locations = make([]parser.State16, 0, 5)
 	return v
 }
 
@@ -55,14 +55,14 @@ func (pool *VariablePool) Exists(name string) bool {
 	return false
 }
 
-func (p *VariablePool) AddInstance(v string, tok *parser.State16, regs *RegisterMap) {
-	if !p.Exists(v) {
+func (p *VariablePool) AddInstance(varnode *parser.Node) {
+	strvalue := varnode.Source()
+	if !p.Exists(strvalue) {
 		nw := NewVariableMeta()
-		nw.name = v
-		nw.register = regs.ReserveRegister()
-		p._map[v] = &nw
+		nw.name = strvalue
+		p._map[strvalue] = &nw
 	}
-	p._map[v].locations = append(p._map[v].locations, tok)
+	p._map[strvalue].locations = append(p._map[strvalue].locations, varnode.Tok)
 }
 
 /**
