@@ -167,7 +167,23 @@ func (me *Node) ChildIndex() int {
 	return myindex
 }
 
-func (me *Node) Next() *Node {
+// Before returns the older sibling of the selected
+// node or nil if there is none.
+func (me *Node) Before() *Node {
+	myindex := me.ChildIndex()
+	if myindex == -1 {
+		// Node is tree root; no parent
+		return nil
+	}
+	if myindex >= 1 {
+		return me.parent.Children[myindex-1]
+	}
+	return nil
+}
+
+// After returns the younger sibling of the selected
+// node or nil if there is none.
+func (me *Node) After() *Node {
 	myindex := me.ChildIndex()
 	if myindex == -1 {
 		// Can't find this node in parent's children.
