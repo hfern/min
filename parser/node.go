@@ -135,14 +135,19 @@ func (root *Node) GetNodeByRule(r Rule) *Node {
 	return matching_nodes[0]
 }
 
+// Source returns the source code that this token was
+// emitted from.
 func (root *Node) Source() string {
 	return root.source
 }
 
 /**
- * Convenience function for getting any 
- * direct child that matches Rule
+ * Child is a convenience function for getting any 
+ * direct child that matches a given Rule.
  * O(n) for n = len(Children)
+ * 
+ * TODO: Reduce to O(log n) using hueristics on Token 
+ * generation postions in source.
  */
 func (root *Node) Child(r Rule) *Node {
 	for _, n := range root.Children {
@@ -157,6 +162,8 @@ func (root *Node) bindSource(s *string) {
 	root.source = (*s)[root.Tok.begin:root.Tok.end]
 }
 
+// ChildIndex attempts to determine the index
+// of a given node in its parent's children array.
 func (me *Node) ChildIndex() int {
 	// -1 is not found code
 	myindex := -1
@@ -203,6 +210,7 @@ func (me *Node) After() *Node {
 	return me.parent.Children[myindex+1]
 }
 
+// ToNodeArray is an alias for []NodeArray{*Node}
 func (me *Node) ToNodeArray() NodeArray {
 	return NodeArray{me}
 }

@@ -2,15 +2,19 @@ package compiler
 
 import (
 	"github.com/hfern/min/parser"
+	"github.com/hfern/min/vm"
+	"strings"
 )
 
 type Routine struct {
-	registers RegisterMap
-	vmap      VariablePool
-	args      []string
-	__program *Program
-	__node    *parser.Node
-	__name    string
+	registers    RegisterMap
+	vmap         VariablePool
+	args         []string
+	__func_calls parser.NodeArray
+	__program    *Program
+	__node       *parser.Node
+	__name       string
+	__IR         IRArray
 }
 
 /**
@@ -21,7 +25,7 @@ func (r *Routine) lex() {
 	r.__name = r.lex_name()
 	r.register_arguments(r.lex_arguments())
 	r.register_variable_positions(r.lex_variables())
-
+	r.register_funccalls(r.lex_funccalls())
 }
 
 // Determines variable positions
@@ -49,6 +53,14 @@ func (r *Routine) register_variable_positions(nodes parser.NodeArray) {
 	for _, node := range nodes {
 		r.vmap.AddInstance(node)
 	}
+}
+
+func (r *Routine) lex_funccalls() parser.NodeArray {
+	return r.__node.Child(parser.Rulecodeblock).GetNodesByRule(parser.Rulefunccall)
+}
+
+func (r *Routine) register_funccalls(nodes parser.NodeArray) {
+	r.__func_calls = nodes
 }
 
 /**
@@ -87,10 +99,69 @@ func (r *Routine) register_arguments(argnodes []*parser.Node) {
 	}
 }
 
+func (r *Routine) GetName() string {
+	return r.__name
+}
+
+func (r *Routine) generate_ir() error {
+	if err := r.generate_ir_head(); err != nil {
+		return err
+	}
+	if err := r.generate_ir_body(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *Routine) generate_ir_head() error {
+	// Push the function symbol to the IR array
+	r.__IR.Add(&IRLabel{symbol: r.Symbol()})
+	// Pop arguments from the stack into their registers
+	initcode := make([]byte, 0, (1+1)*len(r.args))
+	for _, argname := range r.args {
+		variable := r.vmap._map[argname]
+		variable.Allocate()
+		variable.register = r.registers.ReserveRegister()
+		byteadd(&initcode, vm.STPP, byte(variable.register.id))
+	}
+	r.__IR.Add(&IRLiteral{code: initcode})
+	return nil
+}
+
+func (r *Routine) generate_ir_body() error {
+
+	r.__IR.Add(&IRLabel{symbol: r.Symbol("body")})
+
+	statements_arr := parser.NodeArray(r.__node.Child(parser.Rulecodeblock).Children)
+
+	statements_arr.Filter(func(nd *parser.Node) bool {
+		if nd.Tok.Rule == parser.Rulecodestatement {
+			return true
+		}
+		return false
+	})
+
+	for _, statement := range statements_arr.CastPrimitive() {
+		if err := genir_codestatement(r, statement); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (r *Routine) Symbol(subdivision ...string) string {
+	extended := strings.Join(subdivision, "$")
+	return strings.Join([]string{"", r.GetName(), extended}, "$")
+}
+
 func NewRoutine() *Routine {
 	rout := Routine{}
 	rout.registers = NewRegisterMap()
 	rout.vmap = NewVariablePool()
+	rout.__func_calls = parser.NewNodeArray()
+	rout.__IR = NewIRArray()
 	return &rout
 }
 

@@ -1,0 +1,11 @@
+General output:
+	- JumpTo: MainCall
+	- Code: Routine1
+	- Code: Routine2
+	- ...
+	- Code: RoutineN
+	- JumpLoc: MainCall
+	- Code: Main
+	- PushStack: 0 (return code)
+	- JumpLoc: End
+	- OpCode: Program End

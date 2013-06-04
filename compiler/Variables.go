@@ -82,3 +82,50 @@ func (p *VariablePool) Free(location parser.State16) {
 		}
 	}
 }
+
+// VariablesAlive returns all variables that have been allocated
+// before position and whose values will be used after position.
+// Mathematically, is VarsBefore Intersect VarsAfter
+// TODO(hunter): This algo has a terrible time complexity of n!
+func (p *VariablePool) VariablesAlive(position int) []*VariableMeta {
+	before := p.VariablesBefore(position)
+	after := p.VariablesAfter(position)
+	alive := make([]*VariableMeta, 0, 5)
+
+	for _, var1 := range before {
+		for _, var2 := range after {
+			if var1 == var2 {
+				alive = append(alive, var1)
+				break
+			}
+		}
+	}
+
+	return alive
+}
+
+func (p *VariablePool) VariablesBefore(position int) []*VariableMeta {
+	existingvars := make([]*VariableMeta, 0, 5)
+	for _, variable := range p._map {
+		for _, state := range variable.locations {
+			if state.End() < position {
+				existingvars = append(existingvars, variable)
+				break
+			}
+		}
+	}
+	return existingvars
+}
+
+func (p *VariablePool) VariablesAfter(position int) []*VariableMeta {
+	existingvars := make([]*VariableMeta, 0, 5)
+	for _, variable := range p._map {
+		for _, state := range variable.locations {
+			if state.End() > position {
+				existingvars = append(existingvars, variable)
+				break
+			}
+		}
+	}
+	return existingvars
+}
